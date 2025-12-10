@@ -1,6 +1,19 @@
 import pandas as pd
 import streamlit as st
-import plotly.express as px
+
+# Try importing plotly and fail gracefully if it's missing
+try:
+    import plotly.express as px
+except ModuleNotFoundError:
+    st.set_page_config(page_title="Online Retail Dashboard", layout="wide")
+    st.error(
+        "❌ The 'plotly' library is not installed.\n\n"
+        "To fix this:\n"
+        "• If running locally: run `pip install plotly`\n"
+        "• If using Streamlit Cloud: create `requirements.txt` with:\n"
+        "    streamlit\n    pandas\n    plotly"
+    )
+    st.stop()
 
 # ======================================================
 # 1. Page config & basic styling
@@ -12,7 +25,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# light background + a bit of spacing
 st.markdown(
     """
     <style>
@@ -79,11 +91,10 @@ df = load_data()
 
 st.title("📊 Sales Opportunities Dashboard")
 st.caption("Online retail analytics – built with Python, Streamlit & Plotly")
-
 st.markdown("---")
 
 # ======================================================
-# 4. Filters (top row)
+# 4. Sidebar filters
 # ======================================================
 
 st.sidebar.header("🔍 Filters")
@@ -91,7 +102,6 @@ st.sidebar.header("🔍 Filters")
 min_date = df["order_date"].min()
 max_date = df["order_date"].max()
 
-# Date range
 date_range = st.sidebar.date_input(
     "Order Date Range",
     value=(min_date, max_date),
@@ -104,28 +114,24 @@ if isinstance(date_range, tuple):
 else:
     start_date, end_date = min_date, max_date
 
-# Category filter
 categories = st.sidebar.multiselect(
     "Product Category",
     options=sorted(df["category_name"].unique()),
     default=sorted(df["category_name"].unique()),
 )
 
-# Gender filter
 genders = st.sidebar.multiselect(
     "Gender",
     options=sorted(df["gender"].dropna().unique()),
     default=sorted(df["gender"].dropna().unique()),
 )
 
-# Age group filter
 age_groups = st.sidebar.multiselect(
     "Age Group",
     options=df["age_group"].cat.categories.tolist(),
     default=df["age_group"].cat.categories.tolist(),
 )
 
-# City filter
 all_cities = sorted(df["city"].unique())
 selected_cities = st.sidebar.multiselect(
     "City (optional – leave empty for all)",
@@ -145,7 +151,7 @@ if selected_cities:
     filtered_df = filtered_df[filtered_df["city"].isin(selected_cities)]
 
 # ======================================================
-# 5. Layout: left KPIs column & right charts
+# 5. Layout: left KPIs & right charts
 # ======================================================
 
 left_col, right_col = st.columns([1, 3])
@@ -163,50 +169,32 @@ with left_col:
         num_orders = len(filtered_df)
         num_customers = filtered_df["customer_id"].nunique()
 
-        # custom KPI cards using HTML
-        st.markdown(
-            f"""
+        def kpi_html(label, value):
+            return f"""
             <div class="kpi-card">
-                <div class="kpi-label">Total Revenue</div>
-                <div class="kpi-value">${total_revenue:,.1f}</div>
+                <div class="kpi-label">{label}</div>
+                <div class="kpi-value">{value}</div>
             </div>
-            """,
+            """
+
+        st.markdown(
+            kpi_html("Total Revenue", f"${total_revenue:,.1f}"),
             unsafe_allow_html=True,
         )
         st.markdown(
-            f"""
-            <div class="kpi-card">
-                <div class="kpi-label">Total Profit</div>
-                <div class="kpi-value">${total_profit:,.1f}</div>
-            </div>
-            """,
+            kpi_html("Total Profit", f"${total_profit:,.1f}"),
             unsafe_allow_html=True,
         )
         st.markdown(
-            f"""
-            <div class="kpi-card">
-                <div class="kpi-label">Avg Order Value</div>
-                <div class="kpi-value">${avg_order_value:,.1f}</div>
-            </div>
-            """,
+            kpi_html("Avg Order Value", f"${avg_order_value:,.1f}"),
             unsafe_allow_html=True,
         )
         st.markdown(
-            f"""
-            <div class="kpi-card">
-                <div class="kpi-label">Total Orders</div>
-                <div class="kpi-value">{num_orders:,}</div>
-            </div>
-            """,
+            kpi_html("Total Orders", f"{num_orders:,}"),
             unsafe_allow_html=True,
         )
         st.markdown(
-            f"""
-            <div class="kpi-card">
-                <div class="kpi-label">Active Customers</div>
-                <div class="kpi-value">{num_customers:,}</div>
-            </div>
-            """,
+            kpi_html("Active Customers", f"{num_customers:,}"),
             unsafe_allow_html=True,
         )
 
@@ -239,7 +227,6 @@ with right_col:
             margin=dict(t=40, l=40, r=20, b=40),
         )
 
-        # Top: Sales over time + Avg sales by category (side-by-side)
         top_left, top_right = st.columns(2)
 
         with top_left:
@@ -267,7 +254,7 @@ with right_col:
             )
             st.plotly_chart(fig_cat, use_container_width=True)
 
-        # Bottom: Age × Gender segmentation (wide)
+        # Bottom wide chart: Age × Gender
         seg = (
             filtered_df.groupby(["age_group", "gender"])["revenue"]
             .sum()
@@ -288,11 +275,10 @@ with right_col:
             height=260,
             margin=dict(t=40, l=40, r=20, b=40),
         )
-
         st.plotly_chart(fig_seg, use_container_width=True)
 
 # ======================================================
-# 6. Extra comparison row (optional)
+# 6. Extra comparisons
 # ======================================================
 
 st.markdown("---")
@@ -301,11 +287,10 @@ st.subheader("🧩 Additional Comparisons")
 bottom_left, bottom_right = st.columns(2)
 
 if filtered_df.empty:
-    with bottom_left:
-        st.info("No data for bottom charts with current filters.")
+    bottom_left.info("No data for bottom charts with current filters.")
 else:
     with bottom_left:
-        st.markdown("#### 🏷 Revenue by Category")
+        st.markdown("#### 🏷 Total Revenue by Category")
         cat_rev = (
             filtered_df.groupby("category_name")["revenue"]
             .sum()
@@ -352,4 +337,4 @@ else:
         st.plotly_chart(fig_city, use_container_width=True)
 
 st.markdown("---")
-st.caption("Designed as a portfolio-style dashboard. Tweak colours & titles to match your personal brand.")
+st.caption("Designed as a portfolio-style dashboard. Add your name/logo in the title bar for extra polish ✨")
