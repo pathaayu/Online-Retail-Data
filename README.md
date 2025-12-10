@@ -1,9 +1,3 @@
-Absolutely — here is a clean, professional **README.md** for your GitHub project that will impress hiring managers.
-
-You can copy & paste this into your repo's `README.md`:
-
----
-
 # 📊 Online Retail Analytics Dashboard
 
 An interactive data analytics project built with **Python**, **Streamlit**, **Pandas**, and **Plotly** to analyze customer behavior, sales performance, and product profitability for an online retail business.
@@ -106,9 +100,3 @@ Then share a **public dashboard link** with stakeholders or recruiters.
 ### ⭐ If you found this useful, please STAR the repo!
 
 ---
-
-Would you like me to also:
-
-✔ Add images / dashboard screenshots into the README?
-✔ Add clickable Streamlit link once deployed?
-✔ Improve branding (logo + hero banner)?
